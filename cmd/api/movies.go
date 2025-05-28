@@ -8,10 +8,10 @@ import (
 )
 
 type input struct {
-	Title   string   `json:"title"`
-	Year    int      `json:"year"`
-	Runtime int32    `json:"runtime"`
-	Genres  []string `json:"genres"`
+	Title   string       `json:"title"`
+	Year    int          `json:"year"`
+	Runtime data.Runtime `json:"runtime"`
+	Genres  []string     `json:"genres"`
 }
 
 func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Request) {
