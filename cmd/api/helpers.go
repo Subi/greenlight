@@ -11,10 +11,6 @@ import (
 	"strings"
 )
 
-var (
-	ErrorProcessing = "Server encountered an error trying to process the request"
-)
-
 // Envelope is a common design pattern that act as wrapper to encapsulate
 // additional data and provide additional metadata about the response.
 type envelope map[string]interface{}

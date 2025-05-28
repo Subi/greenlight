@@ -3,13 +3,14 @@ package main
 import (
 	"fmt"
 	"github.com/subi/greenlight/internal/data"
+	"github.com/subi/greenlight/internal/validator"
 	"net/http"
 	"time"
 )
 
 type input struct {
 	Title   string       `json:"title"`
-	Year    int          `json:"year"`
+	Year    int32        `json:"year"`
 	Runtime data.Runtime `json:"runtime"`
 	Genres  []string     `json:"genres"`
 }
@@ -23,7 +24,21 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	fmt.Fprintf(w, "%+v\n", input)
+	movie := &data.Movie{
+		Title:   input.Title,
+		Year:    input.Year,
+		Runtime: input.Runtime,
+		Genres:  input.Genres,
+	}
+
+	v := validator.New()
+
+	if data.ValidateMovie(v, movie); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	fmt.Fprintf(w, "%+v\n", movie)
 }
 
 func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request) {
