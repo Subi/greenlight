@@ -7,9 +7,11 @@ import (
 	"fmt"
 	_ "github.com/lib/pq"
 	"github.com/subi/greenlight/internal/data"
+	"github.com/subi/greenlight/internal/mailer"
 	"log/slog"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -27,12 +29,26 @@ type config struct {
 		maxOpenConns int
 		maxIdleTime  time.Duration
 	}
+	limiter struct {
+		rps     float64
+		burst   int
+		enabled bool
+	}
+	smtp struct {
+		host     string
+		port     int
+		username string
+		password string
+		sender   string
+	}
 }
 
 type application struct {
 	config config
 	logger *slog.Logger
 	models data.Models
+	mailer mailer.Mailer
+	wg     sync.WaitGroup
 }
 
 func main() {
@@ -49,6 +65,17 @@ func main() {
 	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
 	flag.IntVar(&cfg.db.maxIdleConns, "db-max-idle-conns", 25, "PostgreSQL max idle connections")
 	flag.DurationVar(&cfg.db.maxIdleTime, "db-max-idle-time", 15*time.Minute, "PostgreSQL max connection idle time")
+
+	// Command line flags to read and set the limiter into the config struct
+	flag.Float64Var(&cfg.limiter.rps, "limiter-rps", 2, "Rate limiter maximum requests per second")
+	flag.IntVar(&cfg.limiter.burst, "limiter-burst", 4, "Rate limiter maximum burst")
+	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", true, "Enable rate limiter")
+
+	flag.StringVar(&cfg.smtp.host, "smtp-host", "sandbox.smtp.mailtrap.io", "SMTP host")
+	flag.IntVar(&cfg.smtp.port, "smtp-port", 2525, "SMTP port")
+	flag.StringVar(&cfg.smtp.username, "smtp-username", "326c005886d62a", "SMTP username")
+	flag.StringVar(&cfg.smtp.password, "smtp-password", "b57b45d1f93aaf", "SMTP password")
+	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Greenlight <no-reply@greenlight.alexedwards.net>", "SMTP sender")
 	flag.Parse()
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
@@ -67,6 +94,7 @@ func main() {
 		config: cfg,
 		logger: logger,
 		models: data.NewModels(db),
+		mailer: mailer.NewMailer(cfg.smtp.host, cfg.smtp.sender, cfg.smtp.username, cfg.smtp.password, cfg.smtp.port),
 	}
 	// Declare server with mux we configured and set sensible timeouts
 	// also includes error logging.
@@ -82,9 +110,11 @@ func main() {
 	logger.Info("starting server", "addr", srv.Addr, "env", cfg.env)
 
 	// Server listens to port that has been set
-	err = srv.ListenAndServe()
-	logger.Error(err.Error())
-	os.Exit(1)
+	err = app.serve()
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
 
 }
 
