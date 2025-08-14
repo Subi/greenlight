@@ -72,7 +72,7 @@ func (app *application) serve() error {
 		return err
 	}
 
-	app.logger.Info("stopped server", "addr")
+	app.logger.Info("stopped server", "addr", srv.Addr)
 
 	return nil
 }

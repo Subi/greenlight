@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"database/sql"
+	"github.com/lib/pq"
 	"slices"
 	"time"
 )
@@ -20,6 +21,16 @@ type PermissionModel struct {
 	DB *sql.DB
 }
 
+func (m PermissionModel) AddForUser(userID int64, codes ...string) error {
+	query := `
+INSERT INTO users_permissions
+SELECT $1, permissions.id FROM permissions WHERE permissions.code = ANY($2)`
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	_, err := m.DB.ExecContext(ctx, query, userID, pq.Array(codes))
+	return err
+}
+
 // The GetAllForUser() method returns all permission codes for a specific user in a
 // Permissions slice. The code in this method should feel very familiar --- it uses the
 // standard pattern that we've already seen before for retrieving multiple data rows in
@@ -31,7 +42,7 @@ FROM permissions
 INNER JOIN users_permissions ON users_permissions.permission_id = permissions.id
 INNER JOIN users ON users_permissions.user_id = users.id
 WHERE users.id = $1`
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	rows, err := m.DB.QueryContext(ctx, query, userID)
