@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/subi/greenlight/internal/data"
 	"github.com/subi/greenlight/internal/validator"
+	"github.com/tomasen/realip"
 	"golang.org/x/time/rate"
-	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -180,11 +180,7 @@ func (app *application) rateLimitMiddleware(next http.Handler) http.Handler {
 		// Only run if rate limit is enabled
 		if app.config.limiter.enabled {
 			// Extract client IP Address
-			ip, _, err := net.SplitHostPort(r.RemoteAddr)
-			if err != nil {
-				app.serverErrorResponse(w, r, err)
-				return
-			}
+			ip := realip.FromRequest(r)
 
 			mu.Lock()
 
