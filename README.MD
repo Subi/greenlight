@@ -9,5 +9,4 @@
 8/14/25
 - Book is offically completed , took longer than expected but happy to have completed it.
 
-
-(https://of9s9167sd.ufs.sh/f/fRrfoMH6JPaA812nanC2LzlmrYEXjJoAk9gq5un6ipOKGwhb.png)
+<img alt="screenshot" src="https://of9s9167sd.ufs.sh/f/fRrfoMH6JPaA812nanC2LzlmrYEXjJoAk9gq5un6ipOKGwhb"/>
